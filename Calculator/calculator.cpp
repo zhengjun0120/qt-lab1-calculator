@@ -26,8 +26,11 @@ Calculator::Calculator(QWidget *parent)
     connect(ui->btnMultiply, &QPushButton::clicked, this, [this] { applyOperator("×"); });
     connect(ui->btnDivide, &QPushButton::clicked, this, [this] { applyOperator("÷"); });
     connect(ui->btnEquals, &QPushButton::clicked, this, &Calculator::calculate);
+    connect(ui->btnClear, &QPushButton::clicked, this, &Calculator::clearAll);
+    connect(ui->btnBackspace, &QPushButton::clicked, this, &Calculator::backspace);
+    connect(ui->btnSign, &QPushButton::clicked, this, &Calculator::toggleSign);
 
-    setDisplay("0");
+    clearAll();
 }
 
 Calculator::~Calculator()
@@ -40,6 +43,7 @@ void Calculator::appendDigit(const QString &digit)
     if (m_state == State::ShowingResult) {
         m_operand.clear();
         m_state = State::EnteringFirst;
+        setExpression(QString());
     }
     if (m_state == State::OperatorPending) {
         m_operand.clear();
@@ -59,6 +63,7 @@ void Calculator::appendDecimal()
     if (m_state == State::ShowingResult) {
         m_operand.clear();
         m_state = State::EnteringFirst;
+        setExpression(QString());
     }
     if (m_state == State::OperatorPending) {
         m_operand.clear();
@@ -78,6 +83,8 @@ void Calculator::applyOperator(const QString &op)
     m_pendingOperator = op;
     m_operand.clear();
     m_state = State::OperatorPending;
+
+    setExpression(QString::number(m_firstOperand, 'g', 15) + " " + op);
 }
 
 void Calculator::calculate()
@@ -94,12 +101,59 @@ void Calculator::calculate()
     else if (m_pendingOperator == "÷")
         result = m_firstOperand / secondOperand;
 
+    if (m_pendingOperator.isEmpty())
+        setExpression(QString::number(secondOperand, 'g', 15) + " =");
+    else
+        setExpression(QString::number(m_firstOperand, 'g', 15) + " " + m_pendingOperator + " "
+                      + QString::number(secondOperand, 'g', 15) + " =");
+
     m_operand = QString::number(result, 'g', 15);
     m_state = State::ShowingResult;
+    setDisplay(m_operand);
+}
+
+void Calculator::backspace()
+{
+    if (m_state == State::ShowingResult || m_state == State::OperatorPending)
+        return;
+
+    m_operand.chop(1);
+    if (m_operand.isEmpty() || m_operand == "-")
+        m_operand = "0";
+
+    setDisplay(m_operand);
+}
+
+void Calculator::clearAll()
+{
+    m_state = State::EnteringFirst;
+    m_operand = "0";
+    m_firstOperand = 0.0;
+    m_pendingOperator.clear();
+
+    setExpression(QString());
+    setDisplay(m_operand);
+}
+
+void Calculator::toggleSign()
+{
+    if (m_state == State::OperatorPending)
+        return;
+
+    if (m_operand.startsWith('-'))
+        m_operand.remove(0, 1);
+    else if (m_operand != "0")
+        m_operand.prepend('-');
+
     setDisplay(m_operand);
 }
 
 void Calculator::setDisplay(const QString &text)
 {
     ui->displayEdit->setText(text);
+}
+
+void Calculator::setExpression(const QString &text)
+{
+    ui->expressionLabel->setText(text);
 }

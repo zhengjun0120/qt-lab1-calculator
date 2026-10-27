@@ -27,7 +27,12 @@ private:
     void appendDecimal();
     void applyOperator(const QString &op);
     void calculate();
+    void backspace();
+    void clearAll();
+    void toggleSign();
+
     void setDisplay(const QString &text);
+    void setExpression(const QString &text);
 
     Ui::Calculator *ui;
 
