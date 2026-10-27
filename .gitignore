@@ -1,0 +1,25 @@
+# 构建输出
+build/
+build-*/
+out/
+
+# Qt Creator 本地配置
+*.user
+*.user.*
+*.autosave
+
+# 编译产物
+*.o
+*.obj
+*.exe
+*.dll
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 报告文档与编辑器临时文件
+*.docx
+~$*
+.zcode/
