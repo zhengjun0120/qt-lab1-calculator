@@ -8,6 +8,17 @@ Qt 6 Widgets 写的四则运算计算器，鼠标和键盘共用同一套处理�
 - CMake 3.30，Ninja
 - 开发工具 Qt Creator
 
+## 目录结构
+
+```
+Calculator/
+  calculator.ui      界面布局，QGridLayout 排 19 个按钮
+  calculator.h/.cpp  输入状态机与四则运算
+  style.qss          样式表，配色与圆角
+  resources.qrc      把样式表编译进程序
+  main.cpp           加载样式表，固定浅色配色
+```
+
 ## 构建
 
 注意：moc 在含中文的目录下无法生成文件，因此构建目录必须放在纯英文路径。

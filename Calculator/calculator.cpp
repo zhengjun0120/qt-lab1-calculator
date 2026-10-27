@@ -3,6 +3,7 @@
 
 #include <QKeyEvent>
 #include <QPushButton>
+#include <QStyle>
 
 Calculator::Calculator(QWidget *parent)
     : QWidget(parent)
@@ -247,6 +248,12 @@ void Calculator::toggleSign()
 
 void Calculator::setDisplay(const QString &text)
 {
+    // 退出错误提示时把显示区恢复成正常字号
+    if (ui->displayEdit->property("state").isValid()) {
+        ui->displayEdit->setProperty("state", QVariant());
+        ui->displayEdit->style()->unpolish(ui->displayEdit);
+        ui->displayEdit->style()->polish(ui->displayEdit);
+    }
     ui->displayEdit->setText(text);
 }
 
@@ -260,7 +267,13 @@ void Calculator::showError()
     m_state = State::Error;
     m_operand.clear();
     m_pendingOperator.clear();
+
     setDisplay(QStringLiteral("除数不能为 0"));
+
+    // 错误提示用文字样式显示，字号比数字小
+    ui->displayEdit->setProperty("state", "error");
+    ui->displayEdit->style()->unpolish(ui->displayEdit);
+    ui->displayEdit->style()->polish(ui->displayEdit);
 }
 
 bool Calculator::compute(double left, double right, const QString &op, double *result)

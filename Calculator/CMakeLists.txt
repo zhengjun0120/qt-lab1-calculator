@@ -16,6 +16,7 @@ qt_add_executable(Calculator
     calculator.h
     calculator.cpp
     calculator.ui
+    resources.qrc
 )
 
 target_link_libraries(Calculator PRIVATE Qt6::Widgets)
