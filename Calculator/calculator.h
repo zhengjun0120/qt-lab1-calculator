@@ -15,6 +15,9 @@ public:
     explicit Calculator(QWidget *parent = nullptr);
     ~Calculator() override;
 
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+
 private:
     enum class State {
         EnteringFirst,   // 正在输入第一个操作数

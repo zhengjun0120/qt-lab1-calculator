@@ -1,6 +1,7 @@
 #include "calculator.h"
 #include "ui_calculator.h"
 
+#include <QKeyEvent>
 #include <QPushButton>
 
 Calculator::Calculator(QWidget *parent)
@@ -30,12 +31,71 @@ Calculator::Calculator(QWidget *parent)
     connect(ui->btnBackspace, &QPushButton::clicked, this, &Calculator::backspace);
     connect(ui->btnSign, &QPushButton::clicked, this, &Calculator::toggleSign);
 
+    // 按钮都设成 NoFocus，键盘焦点始终停在窗口上
+    setFocusPolicy(Qt::StrongFocus);
+
     clearAll();
 }
 
 Calculator::~Calculator()
 {
     delete ui;
+}
+
+void Calculator::keyPressEvent(QKeyEvent *event)
+{
+    // 先按键码处理功能键，回车和小键盘回车的 text() 都不是常规字符
+    switch (event->key()) {
+    case Qt::Key_Enter:
+    case Qt::Key_Return:
+        calculate();
+        return;
+    case Qt::Key_Backspace:
+        backspace();
+        return;
+    case Qt::Key_Escape:
+    case Qt::Key_Delete:
+        clearAll();
+        return;
+    default:
+        break;
+    }
+
+    // 再按字符处理数字和运算符，这样主键盘和小键盘都能用
+    const QString text = event->text();
+    if (text.size() == 1) {
+        const QChar ch = text.at(0);
+        if (ch.isDigit()) {
+            appendDigit(text);
+            return;
+        }
+        if (ch == '.') {
+            appendDecimal();
+            return;
+        }
+        if (ch == '+') {
+            applyOperator("+");
+            return;
+        }
+        if (ch == '-') {
+            applyOperator("-");
+            return;
+        }
+        if (ch == '*') {
+            applyOperator("×");
+            return;
+        }
+        if (ch == '/') {
+            applyOperator("÷");
+            return;
+        }
+        if (ch == '=') {
+            calculate();
+            return;
+        }
+    }
+
+    QWidget::keyPressEvent(event);
 }
 
 void Calculator::appendDigit(const QString &digit)
