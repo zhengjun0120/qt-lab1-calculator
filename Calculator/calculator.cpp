@@ -40,6 +40,9 @@ Calculator::~Calculator()
 
 void Calculator::appendDigit(const QString &digit)
 {
+    if (m_state == State::Error)
+        clearAll();
+
     if (m_state == State::ShowingResult) {
         m_operand.clear();
         m_state = State::EnteringFirst;
@@ -60,6 +63,9 @@ void Calculator::appendDigit(const QString &digit)
 
 void Calculator::appendDecimal()
 {
+    if (m_state == State::Error)
+        clearAll();
+
     if (m_state == State::ShowingResult) {
         m_operand.clear();
         m_state = State::EnteringFirst;
@@ -83,42 +89,69 @@ void Calculator::appendDecimal()
 
 void Calculator::applyOperator(const QString &op)
 {
-    m_firstOperand = m_operand.toDouble();
+    if (m_state == State::Error)
+        return;
+
+    if (m_state == State::OperatorPending) {
+        // 第二个操作数还没开始输入，直接换掉运算符
+        m_pendingOperator = op;
+        setExpression(formatNumber(m_firstOperand) + " " + op);
+        return;
+    }
+
+    if (m_state == State::EnteringSecond) {
+        // 连续运算：先把上一段算出来，结果作为新的第一操作数
+        double intermediate = 0.0;
+        if (!compute(m_firstOperand, m_operand.toDouble(), m_pendingOperator, &intermediate)) {
+            showError();
+            return;
+        }
+        m_firstOperand = intermediate;
+        setDisplay(formatNumber(m_firstOperand));
+    } else {
+        m_firstOperand = m_operand.toDouble();
+    }
+
     m_pendingOperator = op;
     m_operand.clear();
     m_state = State::OperatorPending;
-
-    setExpression(QString::number(m_firstOperand, 'g', 15) + " " + op);
+    setExpression(formatNumber(m_firstOperand) + " " + op);
 }
 
 void Calculator::calculate()
 {
-    const double secondOperand = m_operand.toDouble();
-    double result = secondOperand;
+    if (m_state == State::Error || m_state == State::ShowingResult)
+        return;
 
-    if (m_pendingOperator == "+")
-        result = m_firstOperand + secondOperand;
-    else if (m_pendingOperator == "-")
-        result = m_firstOperand - secondOperand;
-    else if (m_pendingOperator == "×")
-        result = m_firstOperand * secondOperand;
-    else if (m_pendingOperator == "÷")
-        result = m_firstOperand / secondOperand;
+    if (m_pendingOperator.isEmpty()) {
+        m_operand = formatNumber(m_operand.toDouble());
+        setExpression(m_operand + " =");
+        setDisplay(m_operand);
+        m_state = State::ShowingResult;
+        return;
+    }
 
-    if (m_pendingOperator.isEmpty())
-        setExpression(QString::number(secondOperand, 'g', 15) + " =");
-    else
-        setExpression(QString::number(m_firstOperand, 'g', 15) + " " + m_pendingOperator + " "
-                      + QString::number(secondOperand, 'g', 15) + " =");
+    // 按运算符后直接按等号时，用第一个操作数补齐第二个
+    const double secondOperand = m_operand.isEmpty() ? m_firstOperand : m_operand.toDouble();
+    const QString expression = formatNumber(m_firstOperand) + " " + m_pendingOperator + " "
+                               + formatNumber(secondOperand) + " =";
 
-    m_operand = QString::number(result, 'g', 15);
+    double result = 0.0;
+    if (!compute(m_firstOperand, secondOperand, m_pendingOperator, &result)) {
+        setExpression(expression);
+        showError();
+        return;
+    }
+
+    setExpression(expression);
+    m_operand = formatNumber(result);
     m_state = State::ShowingResult;
     setDisplay(m_operand);
 }
 
 void Calculator::backspace()
 {
-    if (m_state == State::ShowingResult || m_state == State::OperatorPending)
+    if (m_state != State::EnteringFirst && m_state != State::EnteringSecond)
         return;
 
     m_operand.chop(1);
@@ -141,7 +174,7 @@ void Calculator::clearAll()
 
 void Calculator::toggleSign()
 {
-    if (m_state == State::OperatorPending)
+    if (m_state == State::OperatorPending || m_state == State::Error)
         return;
 
     if (m_operand.startsWith('-'))
@@ -160,4 +193,38 @@ void Calculator::setDisplay(const QString &text)
 void Calculator::setExpression(const QString &text)
 {
     ui->expressionLabel->setText(text);
+}
+
+void Calculator::showError()
+{
+    m_state = State::Error;
+    m_operand.clear();
+    m_pendingOperator.clear();
+    setDisplay(QStringLiteral("除数不能为 0"));
+}
+
+bool Calculator::compute(double left, double right, const QString &op, double *result)
+{
+    if (op == "+") {
+        *result = left + right;
+    } else if (op == "-") {
+        *result = left - right;
+    } else if (op == "×") {
+        *result = left * right;
+    } else if (op == "÷") {
+        if (right == 0.0)
+            return false;
+        *result = left / right;
+    } else {
+        *result = right;
+    }
+    return true;
+}
+
+QString Calculator::formatNumber(double value)
+{
+    // 避免 0.1+0.2 显示成一长串浮点误差，顺便把 -0 归一成 0
+    if (value == 0.0)
+        return QStringLiteral("0");
+    return QString::number(value, 'g', 15);
 }
