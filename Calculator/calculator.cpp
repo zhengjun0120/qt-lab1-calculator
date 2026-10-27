@@ -70,6 +70,10 @@ void Calculator::appendDecimal()
         m_state = State::EnteringSecond;
     }
 
+    // 同一个操作数里只允许出现一个小数点
+    if (m_operand.contains('.'))
+        return;
+
     if (m_operand.isEmpty())
         m_operand = "0";
 
