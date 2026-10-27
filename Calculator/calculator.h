@@ -16,7 +16,25 @@ public:
     ~Calculator() override;
 
 private:
+    enum class State {
+        EnteringFirst,   // 正在输入第一个操作数
+        OperatorPending, // 刚按下运算符，等待第二个操作数
+        EnteringSecond,  // 正在输入第二个操作数
+        ShowingResult    // 已显示计算结果
+    };
+
+    void appendDigit(const QString &digit);
+    void appendDecimal();
+    void applyOperator(const QString &op);
+    void calculate();
+    void setDisplay(const QString &text);
+
     Ui::Calculator *ui;
+
+    State m_state = State::EnteringFirst;
+    QString m_operand;
+    double m_firstOperand = 0.0;
+    QString m_pendingOperator;
 };
 
 #endif // CALCULATOR_H
